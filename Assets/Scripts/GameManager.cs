@@ -108,6 +108,47 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 0;
     }
 
+    public void OnContinueButtonClick()
+    {
+        PlayClickSound();
+        if (AdsManager.Instance != null)
+        {
+            AdsManager.Instance.ShowRewardedAd();
+        }
+        else
+        {
+            Debug.LogError("AdsManager Instance not found! Continuing game without ad for testing.");
+            ContinueGame();
+        }
+    }
+
+    public void ContinueGame()
+    {
+        isGameOver = false;
+        if (gameOverPanel != null) gameOverPanel.SetActive(false);
+        Time.timeScale = 1;
+        
+        // Find and destroy any chimneys currently on screen
+        if (Camera.main != null)
+        {
+            // Create a temporary copy to avoid modification errors while iterating
+            List<Chimney> toCheck = new List<Chimney>(activeChimneys);
+            foreach (Chimney chimney in toCheck)
+            {
+                if (chimney == null) continue;
+                Vector3 screenPoint = Camera.main.WorldToViewportPoint(chimney.transform.position);
+                
+                // If chimney is inside or slightly outside the viewport, destroy it
+                if (screenPoint.x >= -0.2f && screenPoint.x <= 1.2f)
+                {
+                    Destroy(chimney.gameObject);
+                }
+            }
+        }
+        
+        Debug.Log("Game Continued and visible chimneys cleared!");
+    }
+
     public void RestartGame()
     {
         PlayClickSound();
