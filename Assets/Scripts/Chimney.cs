@@ -28,6 +28,16 @@ public class Chimney : MonoBehaviour
 
     void Update()
     {
+        // DESTROY if too far to the left of the Santa (Cleanup)
+        if (GameManager.Instance != null && GameManager.Instance.santaTransform != null)
+        {
+            if (transform.position.x < GameManager.Instance.santaTransform.position.x - 25f)
+            {
+                Destroy(gameObject);
+                return;
+            }
+        }
+
         if (isFulfilled || isOffScreen) return;
 
         // LOCAL MISS DETECTION (Primary)
