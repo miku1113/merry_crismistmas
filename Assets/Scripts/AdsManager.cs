@@ -7,12 +7,16 @@ public class AdsManager : MonoBehaviour, IUnityAdsInitializationListener, IUnity
 
     [Header("Setup")]
     [SerializeField] string _androidGameId = "6013200";
+#if UNITY_IOS
     [SerializeField] string _iOSGameId = "6013201";
+#endif
     [SerializeField] bool _testMode = true;
 
     [Header("Ad Unit IDs")]
     [SerializeField] string _androidAdUnitId = "Rewarded_Android";
+#if UNITY_IOS
     [SerializeField] string _iOSAdUnitId = "Rewarded_iOS";
+#endif
 
     private string _gameId;
     private string _adUnitId;

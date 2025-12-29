@@ -14,6 +14,7 @@ public class GameManager : MonoBehaviour
     public Transform santaTransform;
 
     private int score = 0;
+    private int coins = 0;
     private int highScore = 0;
     private bool isGameOver = false;
     private bool isPaused = false;
@@ -33,6 +34,7 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         highScore = PlayerPrefs.GetInt("HighScore", 0);
+        coins = PlayerPrefs.GetInt("TotalCoins", 0);
         UpdateUI();
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (pausePanel != null) pausePanel.SetActive(false);
@@ -88,6 +90,14 @@ public class GameManager : MonoBehaviour
             activeChimneys.Remove(chimney);
     }
 
+    public void AddCoin(int amount)
+    {
+        if (isGameOver) return;
+        coins += amount;
+        PlayerPrefs.SetInt("TotalCoins", coins); // Save continuously
+        UpdateUI();
+    }
+
     public void AddScore(int amount)
     {
         if (isGameOver) return;
@@ -131,6 +141,7 @@ public class GameManager : MonoBehaviour
         // Find and destroy any chimneys currently on screen
         if (Camera.main != null)
         {
+            // 1. Clear Chimneys (Houses)
             // Create a temporary copy to avoid modification errors while iterating
             List<Chimney> toCheck = new List<Chimney>(activeChimneys);
             foreach (Chimney chimney in toCheck)
@@ -144,8 +155,46 @@ public class GameManager : MonoBehaviour
                     Destroy(chimney.gameObject);
                 }
             }
+            
+            // 2. Clear Other Obstacles (Clouds, Trees) identified by OffScreenDestroyer
+            OffScreenDestroyer[] obstacles = FindObjectsOfType<OffScreenDestroyer>();
+            foreach (OffScreenDestroyer obs in obstacles)
+            {
+                if (obs == null) continue;
+                Vector3 screenPoint = Camera.main.WorldToViewportPoint(obs.transform.position);
+                
+                // If visible (with buffer), destroy
+                if (screenPoint.x >= -0.2f && screenPoint.x <= 1.2f && screenPoint.y >= -0.2f && screenPoint.y <= 1.2f)
+                {
+                    Destroy(obs.gameObject);
+                }
+            }
+
+            // 3. Explicitly clear Dark Clouds (identified by PeriodicAnimator)
+            // This ensures they are removed even if OffScreenDestroyer is missing
+            PeriodicAnimator[] darkClouds = FindObjectsOfType<PeriodicAnimator>();
+            foreach (PeriodicAnimator dc in darkClouds)
+            {
+                if (dc == null) continue;
+                Vector3 screenPoint = Camera.main.WorldToViewportPoint(dc.transform.position);
+                
+                if (screenPoint.x >= -0.2f && screenPoint.x <= 1.2f && screenPoint.y >= -0.2f && screenPoint.y <= 1.2f)
+                {
+                    Destroy(dc.gameObject);
+                }
+            }
         }
         
+        // Reset Santa's state (re-enable controls, clear shock flag)
+        if (santaTransform != null)
+        {
+            SantaController santaCtrl = santaTransform.GetComponent<SantaController>();
+            if (santaCtrl != null)
+            {
+                santaCtrl.ResetState();
+            }
+        }
+
         Debug.Log("Game Continued and visible chimneys cleared!");
     }
 
@@ -201,7 +250,7 @@ public class GameManager : MonoBehaviour
 
     void UpdateUI()
     {
-        if (scoreText != null) scoreText.text = "Score: " + score;
+        if (scoreText != null) scoreText.text = "Score: " + score + "\nCoins: " + coins;
         if (highScoreText != null) highScoreText.text = "High Score: " + highScore;
     }
 }

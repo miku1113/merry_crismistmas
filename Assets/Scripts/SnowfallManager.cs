@@ -13,6 +13,13 @@ public class SnowfallManager : MonoBehaviour
     void Start()
     {
         mainCameraTransform = Camera.main.transform;
+        
+        // Check if Snowfall is enabled
+        bool snowfallEnabled = PlayerPrefs.GetInt("SnowfallEnabled", 1) == 1;
+        if (!snowfallEnabled)
+        {
+            this.enabled = false;
+        }
     }
 
     void Update()
