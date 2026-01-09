@@ -20,6 +20,7 @@ public class AdsManager : MonoBehaviour, IUnityAdsInitializationListener, IUnity
 
     private string _gameId;
     private string _adUnitId;
+    private bool _isInitializing = false;
 
     void Awake()
     {
@@ -42,8 +43,9 @@ public class AdsManager : MonoBehaviour, IUnityAdsInitializationListener, IUnity
         _adUnitId = _androidAdUnitId;
 #endif
 
-        if (!Advertisement.isInitialized && Advertisement.isSupported)
+        if (!Advertisement.isInitialized && Advertisement.isSupported && !_isInitializing)
         {
+            _isInitializing = true;
             Advertisement.Initialize(_gameId, _testMode, this);
         }
     }

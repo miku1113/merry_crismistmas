@@ -12,19 +12,12 @@ public class SnowfallManager : MonoBehaviour
 
     void Start()
     {
-        mainCameraTransform = Camera.main.transform;
-        
-        // Check if Snowfall is enabled
-        bool snowfallEnabled = PlayerPrefs.GetInt("SnowfallEnabled", 1) == 1;
-        if (!snowfallEnabled)
-        {
-            this.enabled = false;
-        }
+        mainCameraTransform = Camera.main != null ? Camera.main.transform : null;
     }
 
     void Update()
     {
-        if (Time.time >= nextSpawnTime && snowBallPrefab != null)
+        if (Time.time >= nextSpawnTime && snowBallPrefab != null && mainCameraTransform != null)
         {
             SpawnSnowBall();
             nextSpawnTime = Time.time + spawnRate;
@@ -34,7 +27,7 @@ public class SnowfallManager : MonoBehaviour
     void SpawnSnowBall()
     {
         float randomX = Random.Range(-spawnRangeX, spawnRangeX);
-        Vector3 spawnPos = new Vector3(mainCameraTransform.position.x + randomX, spawnHeight, 5f); // 5f is background Z
+        Vector3 spawnPos = new Vector3(mainCameraTransform.position.x + randomX, spawnHeight, 5f);
         Instantiate(snowBallPrefab, spawnPos, Quaternion.identity);
     }
 }

@@ -13,6 +13,8 @@ public class SantaController : MonoBehaviour
     [Header("Gift Settings")]
     public GameObject giftPrefab;
     public Transform dropPoint;
+    [Range(0.01f, 2.0f)] public float minGiftScale = 0.2f;
+    [Range(0.01f, 2.0f)] public float maxGiftScale = 0.3f;
 
     [Header("Audio Settings")]
     public AudioSource loopSource; // Dedicated for sleigh loop
@@ -28,19 +30,23 @@ public class SantaController : MonoBehaviour
     public string shockTriggerName = "Shock";
     public float shockLimitDuration = 1f; // How long to wait before Game Over screen
     private bool isHandlingGameOver = false;
+    private float baseVerticalSpeed;
 
     private bool wasPausedLastFrame = false;
     private int skipFrames = 0;
 
     void Start()
     {
-        // Load Settings
-        float sensitivity = PlayerPrefs.GetFloat("JoystickSensitivity", 1f);
-        verticalSpeed *= sensitivity;
+        baseVerticalSpeed = verticalSpeed;
 
-        int difficulty = PlayerPrefs.GetInt("GameDifficulty", 1); // 0: Easy, 1: Normal, 2: Hard
-        if (difficulty == 0) moveSpeed *= 0.8f;
-        else if (difficulty == 2) moveSpeed *= 1.3f;
+        // Load sensitivity from PlayerPrefs
+        float sensitivity = PlayerPrefs.GetFloat("Sensitivity", 1.0f);
+        verticalSpeed = baseVerticalSpeed * sensitivity;
+
+        // Sync audio volumes with AudioManager instead of loading directly from PlayerPrefs
+        SyncAudioVolumes();
+
+        Debug.Log($"[SantaController] Loaded - Sensitivity: {sensitivity}");
 
         if (loopSource != null)
         {
@@ -63,6 +69,26 @@ public class SantaController : MonoBehaviour
             }
         }
     }
+
+    // Sync audio source volumes with AudioManager
+    void SyncAudioVolumes()
+    {
+        float sfxVolume = PlayerPrefs.GetFloat("SFXVolume", 0.7f);
+        
+        if (loopSource != null)
+        {
+            loopSource.volume = sfxVolume;
+        }
+        if (sfxSource != null)
+        {
+            sfxSource.volume = sfxVolume;
+        }
+        
+        Debug.Log($"[SantaController] Synced audio volumes - SFX Volume: {sfxVolume}");
+    }
+
+    private float audioSyncTimer = 0f;
+    private const float AUDIO_SYNC_INTERVAL = 0.5f; // Check every 0.5 seconds
 
     void Update()
     {
@@ -87,6 +113,14 @@ public class SantaController : MonoBehaviour
         {
             skipFrames--;
             return;
+        }
+
+        // Periodically sync audio volumes with current settings
+        audioSyncTimer += Time.deltaTime;
+        if (audioSyncTimer >= AUDIO_SYNC_INTERVAL)
+        {
+            SyncAudioVolumes();
+            audioSyncTimer = 0f;
         }
 
         // Continuous Movement to the Right
@@ -132,8 +166,8 @@ public class SantaController : MonoBehaviour
         }
     }
 
-    private float groundTimer = 0f;
-    public float maxGroundTime = 2f;
+    private float outOfBoundsTimer = 0f;
+    public float maxOutOfBoundsTime = 2f;
 
     private void CheckBounds()
     {
@@ -141,30 +175,23 @@ public class SantaController : MonoBehaviour
         {
             Vector3 viewportPos = Camera.main.WorldToViewportPoint(transform.position);
             
-            // 1. Check Ceiling (Too High) -> Instant Game Over
-            if (viewportPos.y > 1.1f)
+            // Check if Santa is outside the vertical viewport (too high or too low)
+            bool isOffScreen = viewportPos.y > 1.05f || viewportPos.y < -0.05f;
+
+            if (isOffScreen)
             {
-                Debug.Log("Santa went out of bounds (Too High)!");
-                if (loopSource != null) loopSource.Stop(); // Stop loop audio
-                GameOver();
-            }
-            // 2. Check Ground (Too Low) -> Timer Based
-            // "if the santa touch on ground for more then 2s then gome over"
-            // We assume "Ground" is near the bottom of the screen (e.g., < 0.1)
-            else if (viewportPos.y < 0.1f)
-            {
-                groundTimer += Time.deltaTime;
-                if (groundTimer > maxGroundTime)
+                outOfBoundsTimer += Time.deltaTime;
+                if (outOfBoundsTimer > maxOutOfBoundsTime)
                 {
-                    Debug.Log("Santa stayed on ground too long!");
-                    if (loopSource != null) loopSource.Stop(); // Stop loop audio
+                    Debug.Log($"[DIAGNOSTICS] Santa stayed out of viewport (Y: {viewportPos.y}) for > {maxOutOfBoundsTime}s! Game Over.");
+                    if (loopSource != null) loopSource.Stop();
                     GameOver();
                 }
             }
             else
             {
                 // Reset timer if back in safe zone
-                groundTimer = 0f;
+                outOfBoundsTimer = 0f;
             }
         }
     }
@@ -184,50 +211,34 @@ public class SantaController : MonoBehaviour
     {
         if (isHandlingGameOver) return; // Prevent double triggering
 
-        // DEBUG: Print everything we hit
-        Debug.Log($"[COLLISION DEBUG] Santa hit: '{hitObject.name}' with Tag: '{hitObject.tag}'");
+        string tag = hitObject.tag;
+        string name = hitObject.name;
+
+        // 1. Filter out non-deadly/collectible items to keep logs clean
+        if (tag == "Gift" || tag == "Coin" || name.Contains("Coin") || tag == "Ground" || tag == "Tree" || tag == "House" || tag == "Chimney" || tag == "Obstacle")
+        {
+            // The user requested that Ground/Obstacles do NOT cause Game Over.
+            // We only care about Dark Clouds for mortality.
+            return; 
+        }
+
+        // DEBUG: Print other collisions
+        Debug.Log($"[COLLISION] Santa hit: '{name}' (Tag: {tag})");
         
-        // Ensure we aren't colliding with our own Gift (if it spawns closely)
-        if (hitObject.CompareTag("Gift")) return;
-        
-        Debug.Log("Santa crashed into: " + hitObject.name);
-        
-        bool isDarkCloud = hitObject.GetComponent<PeriodicAnimator>() != null || hitObject.name.Contains("Dark");
+        // 2. Determine behavior based on object type
+        bool isDarkCloud = hitObject.GetComponent<PeriodicAnimator>() != null || name.Contains("Dark");
 
         if (isDarkCloud)
         {
-            if (loopSource != null) loopSource.Stop(); // Stop loop audio immediately
+            Debug.Log("[DIAGNOSTICS] Santa hit Dark Cloud - Starting Shock Animation.");
+            if (loopSource != null) loopSource.Stop();
             
-            // Play shock sound locally for best control
-            if (sfxSource != null)
+            if (sfxSource != null && shockClip != null)
             {
-                if (shockClip != null)
-                {
-                    sfxSource.PlayOneShot(shockClip);
-                    Debug.Log("Santa: Playing shock clip locally.");
-                }
-                else
-                {
-                    Debug.LogWarning("Santa: shockClip is missing in the Inspector!");
-                }
-            }
-            else if (AudioManager.Instance != null && shockClip != null)
-            {
-                // Fallback to global if local source missing
-                AudioManager.Instance.PlaySFX(shockClip);
+                sfxSource.PlayOneShot(shockClip);
             }
             
             StartCoroutine(PlayShockAndGameOver());
-        }
-        else
-        {
-            // Optional: Play crash sound even if not deadly? Or only if deadly?
-            // If it's NOT a dark cloud and NOT deadly, we might not want to stop audio.
-            // But usually collision implies a stop. 
-            // The user said: "if the santa touch other collition then dont do game over"
-            // So we don't stop audio here if it's not a dark cloud.
-            
-            Debug.Log("Santa hit non-deadly obstacle: " + hitObject.name + " - Ignoring.");
         }
     }
 
@@ -289,8 +300,8 @@ public class SantaController : MonoBehaviour
         {
             GameObject gift = Instantiate(giftPrefab, dropPoint.position, Quaternion.identity);
             
-            // Randomize size between 0.2 and 0.3 (based on previous update)
-            float randomScale = Random.Range(0.2f, 0.3f);
+            // Randomize size based on settings
+            float randomScale = Random.Range(minGiftScale, maxGiftScale);
             gift.transform.localScale = new Vector3(randomScale, randomScale, 1f);
 
             // Play drop sound
@@ -312,6 +323,9 @@ public class SantaController : MonoBehaviour
         
         // Reset rotation if stuck in shock
         transform.rotation = Quaternion.identity;
+        
+        // Sync audio volumes with current settings
+        SyncAudioVolumes();
         
         // Optionally reset Animator to Idle loop if needed
         // Reset audio if it was stopped

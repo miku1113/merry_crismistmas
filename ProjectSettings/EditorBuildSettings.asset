@@ -9,6 +9,18 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: be2e135d7e4424627a621e7d2fe6288d
   - enabled: 1
+    path: Assets/Scenes/LevelSelection.unity
+    guid: 5e30f3bbbe8854495ab3f17704dd7325
+  - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
+  - enabled: 1
+    path: Assets/Scenes/ravan.unity
+    guid: 9296faefc78714fc799ec8a872593878
+  - enabled: 1
+    path: Assets/Scenes/witch.unity
+    guid: 7f3cbfe73cfc641c5a65b1c84eb6ac1e
+  - enabled: 1
+    path: Assets/Scenes/plan.unity
+    guid: 697e0893f3bce4b2aa0ea1754855a0fd
   m_configObjects: {}

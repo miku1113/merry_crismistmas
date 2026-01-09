@@ -16,32 +16,39 @@ public class Coin : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
+        // Try to find any player controller
         SantaController santa = other.GetComponent<SantaController>();
-        if (santa == null && other.CompareTag("Player"))
+        WitchController witch = other.GetComponent<WitchController>();
+        PlaneController plane = other.GetComponent<PlaneController>();
+
+        if (santa == null && witch == null && plane == null && other.CompareTag("Player"))
         {
             santa = other.GetComponentInParent<SantaController>();
+            witch = other.GetComponentInParent<WitchController>();
+            plane = other.GetComponentInParent<PlaneController>();
         }
 
-        if (santa != null)
-        {
-            Collect(santa);
-        }
+        if (santa != null) Collect(santa, null, null);
+        else if (witch != null) Collect(null, witch, null);
+        else if (plane != null) Collect(null, null, plane);
     }
 
-    void Collect(SantaController santa)
+    void Collect(SantaController santa, WitchController witch, PlaneController plane)
     {
-        // Add to coin count only (Score logic removed)
+        // Add to coin count only
         if (GameManager.Instance != null)
         {
             GameManager.Instance.AddCoin(1); 
         }
 
-        // Play sound via Santa (since coin is about to be destroyed)
-        if (santa != null && collectSound != null)
+        // Play sound via the respective controller
+        if (collectSound != null)
         {
-            santa.PlayCollectSound(collectSound);
+            if (santa != null) santa.PlayCollectSound(collectSound);
+            else if (witch != null) witch.PlayCollectSound(collectSound);
+            else if (plane != null) plane.PlayCollectSound(collectSound);
         }
-        else if (collectSound == null)
+        else
         {
             Debug.LogWarning("Coin: collectSound is missing in the Inspector!");
         }
