@@ -1,0 +1,8 @@
+# ProGuard configuration to address deobfuscation file warning
+-keep class com.unity3d.ads.** { *; }
+-keep interface com.unity3d.ads.** { *; }
+-keep class com.unity3d.services.** { *; }
+-keep interface com.unity3d.services.** { *; }
+
+# Keep your own classes if needed
+-keep class com.MJStudios.MerryChristmas.** { *; }
