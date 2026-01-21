@@ -12,7 +12,7 @@ public class AdsManager : MonoBehaviour, IUnityAdsInitializationListener, IUnity
 #endif
     [SerializeField] bool _testMode = true;
 
-    [Header("Ad Unit IDs")]
+    [Header("Rewarded Ad Unit IDs")]
     [SerializeField] string _androidAdUnitId = "Rewarded_Android";
 #if UNITY_IOS
     [SerializeField] string _iOSAdUnitId = "Rewarded_iOS";
@@ -46,6 +46,12 @@ public class AdsManager : MonoBehaviour, IUnityAdsInitializationListener, IUnity
         if (!Advertisement.isInitialized && Advertisement.isSupported && !_isInitializing)
         {
             _isInitializing = true;
+            
+            // Set child-directed metadata for Families Policy compliance
+            MetaData privacyMetaData = new MetaData("privacy");
+            privacyMetaData.Set("mode", "child-directed");
+            Advertisement.SetMetaData(privacyMetaData);
+
             Advertisement.Initialize(_gameId, _testMode, this);
         }
     }
