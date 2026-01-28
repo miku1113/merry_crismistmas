@@ -77,18 +77,21 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        // Trigger Tutorial
-        if (tutorialManager != null)
+        // Trigger Tutorial only if not completed yet
+        if (PlayerPrefs.GetInt("TutorialComplete", 0) == 0)
         {
-            tutorialManager.StartTutorial();
-        }
-        else
-        {
-            // Try to find it if not assigned
-            tutorialManager = FindObjectOfType<TutorialManager>();
             if (tutorialManager != null)
             {
                 tutorialManager.StartTutorial();
+            }
+            else
+            {
+                // Try to find it if not assigned
+                tutorialManager = FindObjectOfType<TutorialManager>();
+                if (tutorialManager != null)
+                {
+                    tutorialManager.StartTutorial();
+                }
             }
         }
     }
@@ -194,6 +197,13 @@ public class GameManager : MonoBehaviour
         // Increase speed by 3% for every 10 points
         float multiplier = 1.0f + Mathf.Floor(score / 10f) * 0.03f;
         UpdatePlayerSpeed(multiplier);
+        
+        // Report to Cloud on every score update? Or only on High Score?
+        // Usually only on High Score or Game Over to save bandwidth.
+        if (score > highScore)
+        {
+            CloudSaveManager.Instance?.ReportScore(highScore);
+        }
     }
 
     private void UpdatePlayerSpeed(float multiplier)
@@ -242,6 +252,13 @@ public class GameManager : MonoBehaviour
         {
             continueWithKeysButton.SetActive(totalKeys >= requiredKeys);
         }
+
+        // Save persistence data local
+        PlayerPrefs.SetInt("TotalCoins", coins);
+        PlayerPrefs.Save();
+
+        // Save persistence data cloud
+        CloudSaveManager.Instance?.SaveGameData(highScore, coins, totalKeys);
 
         if (gameOverPanel != null) gameOverPanel.SetActive(true);
         Time.timeScale = 0;

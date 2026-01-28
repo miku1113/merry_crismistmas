@@ -81,6 +81,10 @@ public class TutorialManager : MonoBehaviour
         currentStep = 0;
         isTutorialActive = false;
         
+        // Mark Tutorial as Complete
+        PlayerPrefs.SetInt("TutorialComplete", 1);
+        PlayerPrefs.Save();
+        
         Debug.Log("Tutorial Completed!");
     }
 

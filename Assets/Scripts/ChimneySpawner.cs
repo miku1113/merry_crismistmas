@@ -70,8 +70,8 @@ public class ChimneySpawner : MonoBehaviour
     {
         if (santaTransform == null) return;
 
-        // Force First Spawn to be deterministic (Fixed House + Dark Cloud)
-        if (!firstSpawnDone)
+        // Force First Spawn to be deterministic (Fixed House + Dark Cloud) ONLY for Tutorial
+        if (!firstSpawnDone && PlayerPrefs.GetInt("TutorialComplete", 0) == 0)
         {
             SpawnFirstSetFixed();
             firstSpawnDone = true;
