@@ -10,7 +10,7 @@ public class AdsManager : MonoBehaviour, IUnityAdsInitializationListener, IUnity
 #if UNITY_IOS
     [SerializeField] string _iOSGameId = "6013201";
 #endif
-    [SerializeField] bool _testMode = true;
+    [SerializeField] bool _testMode = false;
 
     [Header("Rewarded Ad Unit IDs")]
     [SerializeField] string _androidAdUnitId = "Rewarded_Android";
@@ -53,6 +53,12 @@ public class AdsManager : MonoBehaviour, IUnityAdsInitializationListener, IUnity
             Advertisement.SetMetaData(privacyMetaData);
 
             Advertisement.Initialize(_gameId, _testMode, this);
+        }
+        else if (Advertisement.isInitialized)
+        {
+            // If already initialized (e.g., from a previous scene), load ad immediately
+            Debug.Log("Unity Ads already initialized. Loading Ad...");
+            LoadAd();
         }
     }
 

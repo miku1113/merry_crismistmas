@@ -6,9 +6,11 @@ using System.Collections.Generic;
 public class SantaController : MonoBehaviour
 {
     [Header("Movement Settings")]
-    public float moveSpeed = 5f;
+    public float moveSpeed = 3f;
     public float verticalSpeed = 5f;
     public SimpleJoystick joystick;
+
+    private float originalMoveSpeed;
 
     [Header("Gift Settings")]
     public GameObject giftPrefab;
@@ -38,6 +40,7 @@ public class SantaController : MonoBehaviour
     void Start()
     {
         baseVerticalSpeed = verticalSpeed;
+        originalMoveSpeed = moveSpeed;
 
         // Load sensitivity from PlayerPrefs
         float sensitivity = PlayerPrefs.GetFloat("Sensitivity", 1.0f);
@@ -154,14 +157,39 @@ public class SantaController : MonoBehaviour
         // Check Bounds (Game Over if off-screen top/bottom)
         CheckBounds();
 
-        // Handle Gift Dropping
-        if (!isHandlingGameOver && (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)))
+        // Check for Mouse Click (Left Click)
+        if (!isHandlingGameOver)
         {
-            // Only drop if not clicking on an actual UI button
-            // And ensure we aren't dragging the joystick (simple check)
-            if (!IsPointerOverButton() && Mathf.Abs(vInput) < 0.2f)
+            if (Input.GetMouseButtonDown(0))
             {
-                DropGift();
+                // For mouse, ensure click is on the right half of the screen
+                if (Input.mousePosition.x > Screen.width / 2 && !IsPointerOverButton() && Mathf.Abs(vInput) < 0.2f)
+                {
+                    DropGift();
+                }
+            }
+            // Check for Space Key (Testing)
+            else if (Input.GetKeyDown(KeyCode.Space))
+            {
+                if (Mathf.Abs(vInput) < 0.2f)
+                {
+                    DropGift();
+                }
+            }
+            // Check for Touch Input
+            else if (Input.touchCount > 0)
+            {
+                foreach (Touch touch in Input.touches)
+                {
+                    if (touch.phase == TouchPhase.Began)
+                    {
+                        if (touch.position.x > Screen.width / 2 && !IsPointerOverButton() && Mathf.Abs(vInput) < 0.2f)
+                        {
+                            DropGift();
+                            break;
+                        }
+                    }
+                }
             }
         }
     }
@@ -345,5 +373,11 @@ public class SantaController : MonoBehaviour
         {
             sfxSource.PlayOneShot(clip);
         }
+    }
+
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        moveSpeed = originalMoveSpeed * multiplier;
+        Debug.Log($"[SantaController] Speed updated to {moveSpeed} (Multiplier: {multiplier})");
     }
 }

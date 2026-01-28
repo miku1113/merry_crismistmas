@@ -46,6 +46,9 @@ public class GameManager : MonoBehaviour
         else Destroy(gameObject);
     }
 
+    [Header("Tutorial")]
+    public TutorialManager tutorialManager;
+
     void Start()
     {
         highScore = PlayerPrefs.GetInt("HighScore", 0);
@@ -71,6 +74,21 @@ public class GameManager : MonoBehaviour
             for (int i = 0; i < spawnAheadCount + 2; i++)
             {
                 SpawnFloor();
+            }
+        }
+
+        // Trigger Tutorial
+        if (tutorialManager != null)
+        {
+            tutorialManager.StartTutorial();
+        }
+        else
+        {
+            // Try to find it if not assigned
+            tutorialManager = FindObjectOfType<TutorialManager>();
+            if (tutorialManager != null)
+            {
+                tutorialManager.StartTutorial();
             }
         }
     }
@@ -171,6 +189,40 @@ public class GameManager : MonoBehaviour
             PlayerPrefs.SetInt("HighScore", highScore);
         }
         UpdateUI();
+        
+        // Calculate Speed Multiplier
+        // Increase speed by 3% for every 10 points
+        float multiplier = 1.0f + Mathf.Floor(score / 10f) * 0.03f;
+        UpdatePlayerSpeed(multiplier);
+    }
+
+    private void UpdatePlayerSpeed(float multiplier)
+    {
+        if (santaTransform == null) return;
+
+        // Try to find the active controller and update speed
+        // Note: Using GetComponent repeatedly can be optimized if needed, but for score updates (infrequent) it's fine.
+        
+        PlaneController plane = santaTransform.GetComponent<PlaneController>();
+        if (plane != null)
+        {
+            plane.SetSpeedMultiplier(multiplier);
+            return;
+        }
+
+        SantaController santa = santaTransform.GetComponent<SantaController>();
+        if (santa != null)
+        {
+            santa.SetSpeedMultiplier(multiplier);
+            return;
+        }
+
+        WitchController witch = santaTransform.GetComponent<WitchController>();
+        if (witch != null)
+        {
+            witch.SetSpeedMultiplier(multiplier);
+            return;
+        }
     }
 
     public void GameOver()

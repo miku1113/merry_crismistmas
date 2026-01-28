@@ -40,6 +40,7 @@ public class ChimneySpawner : MonoBehaviour
     public float randomXOffset = 2f;
 
     private float nextSpawnTime;
+    private bool firstSpawnDone = false;
 
     void Start()
     {
@@ -69,6 +70,14 @@ public class ChimneySpawner : MonoBehaviour
     {
         if (santaTransform == null) return;
 
+        // Force First Spawn to be deterministic (Fixed House + Dark Cloud)
+        if (!firstSpawnDone)
+        {
+            SpawnFirstSetFixed();
+            firstSpawnDone = true;
+            return;
+        }
+
         float spawnX = santaTransform.position.x + spawnDistanceAhead + Random.Range(-randomXOffset, randomXOffset);
 
         // Spawn Random House OR Yagna
@@ -97,7 +106,19 @@ public class ChimneySpawner : MonoBehaviour
             if (santaTransform != null)
             {
                 var santa = santaTransform.GetComponent<SantaController>();
+                // Also check for other controllers if needed, but SantaController is safe if only Santa is used
+                // Or generalized get component logic
                 if (santa != null) moveSpeed = santa.moveSpeed;
+                else
+                {
+                    var plane = santaTransform.GetComponent<PlaneController>();
+                    if (plane != null) moveSpeed = plane.moveSpeed;
+                    else
+                    {
+                        var witch = santaTransform.GetComponent<WitchController>();
+                        if (witch != null) moveSpeed = witch.moveSpeed;
+                    }
+                }
             }
             
             // midPoint is half of the distance Santa travels between spawns
@@ -161,5 +182,31 @@ public class ChimneySpawner : MonoBehaviour
                 Instantiate(coinPrefab, coinPos, Quaternion.identity);
             }
         }
+    }
+
+    private void SpawnFirstSetFixed()
+    {
+        // Deterministic Spawn for Tutorial
+        // House at fixed distance ahead
+        float spawnX = santaTransform.position.x + spawnDistanceAhead; // e.g. +15f
+
+        if (housePrefabs != null && housePrefabs.Count > 0)
+        {
+            GameObject prefabToSpawn = housePrefabs[0]; // Use first house for consistency
+            Instantiate(prefabToSpawn, new Vector3(spawnX, chimneyY, 0), Quaternion.identity);
+        }
+
+        // GUARANTEED Dark Cloud just before the house
+        // So user sees it coming
+        if (darkCloudPrefab != null)
+        {
+            float cloudX = spawnX - 5f; // 5 units before the house
+            float cloudY = (minCloudY + maxCloudY) / 2f; // Mid-height
+            
+            Instantiate(darkCloudPrefab, new Vector3(cloudX, cloudY, 0), Quaternion.identity);
+            Debug.Log("Spawning Guaranteed First Dark Cloud!");
+        }
+
+        Debug.Log("First Set Spawned Deterministically.");
     }
 }
